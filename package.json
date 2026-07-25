@@ -1,0 +1,53 @@
+{
+	"name": "undrive",
+	"private": true,
+	"version": "0.1.12",
+	"type": "module",
+	"scripts": {
+		"wire": "node scripts/wire-plugins.mjs",
+		"publish:oss": "node scripts/publish-oss.mjs",
+		"predev": "node scripts/wire-plugins.mjs",
+		"dev": "npx wrangler dev --config worker/wrangler.toml --port 8787 --remote & vite dev --port 5173",
+		"predev:frontend": "node scripts/wire-plugins.mjs",
+		"dev:frontend": "vite dev --port 5173",
+		"predev:worker": "node scripts/wire-plugins.mjs",
+		"dev:worker": "npx wrangler dev --config worker/wrangler.toml --port 8787",
+		"prebuild": "node scripts/wire-plugins.mjs",
+		"build": "vite build",
+		"preview": "vite preview",
+		"prepare": "svelte-kit sync || echo ''",
+		"precheck": "node scripts/wire-plugins.mjs",
+		"check": "svelte-kit sync && svelte-check --tsconfig ./jsconfig.json",
+		"check:watch": "svelte-kit sync && svelte-check --tsconfig ./jsconfig.json --watch"
+	},
+	"devDependencies": {
+		"@sveltejs/adapter-auto": "^7.0.1",
+		"@sveltejs/adapter-cloudflare": "^7.2.9",
+		"@sveltejs/kit": "^2.63.0",
+		"@sveltejs/vite-plugin-svelte": "^7.1.2",
+		"svelte": "^5.56.1",
+		"svelte-check": "^4.6.0",
+		"typescript": "^6.0.3",
+		"vite": "^8.0.16",
+		"wrangler": "^4.86.0"
+	},
+	"dependencies": {
+		"@aws-sdk/client-s3": "^3.1090.0",
+		"@aws-sdk/s3-request-presigner": "^3.1090.0",
+		"@tiptap/core": "^3.27.3",
+		"@tiptap/extension-character-count": "^3.27.4",
+		"@tiptap/extension-focus": "^3.28.0",
+		"@tiptap/extension-highlight": "^3.27.4",
+		"@tiptap/extension-image": "^3.27.4",
+		"@tiptap/extension-link": "^3.27.3",
+		"@tiptap/extension-placeholder": "^3.27.3",
+		"@tiptap/extension-task-item": "^3.27.4",
+		"@tiptap/extension-task-list": "^3.27.4",
+		"@tiptap/extension-typography": "^3.27.4",
+		"@tiptap/pm": "^3.27.3",
+		"@tiptap/starter-kit": "^3.27.3",
+		"aws4fetch": "^1.0.20",
+		"tiptap-extension-resize-image": "^1.4.4",
+		"tiptap-markdown": "^0.9.0"
+	}
+}

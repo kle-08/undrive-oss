@@ -1,0 +1,19 @@
+name = "undrive"
+pages_build_output_dir = ".svelte-kit/cloudflare"
+compatibility_date = "2025-07-01"
+compatibility_flags = ["nodejs_compat"]
+
+[[r2_buckets]]
+binding = "BUCKET"
+bucket_name = "my-drive"
+
+[[d1_databases]]
+binding = "DB"
+database_name = "cloudvault-db"
+database_id = "c3307405-8928-4a57-9e8e-2b34d47a9eb2"
+
+# Secrets (set via `npx wrangler pages secret put`):
+# R2_ACCESS_KEY_ID
+# R2_SECRET_ACCESS_KEY
+# R2_ENDPOINT
+# BUCKET_NAME

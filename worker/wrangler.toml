@@ -1,0 +1,27 @@
+name = "cloudvault-api"
+main = "src/index.js"
+compatibility_date = "2025-07-01"
+
+[vars]
+ALLOWED_ORIGIN = "https://undrive.pages.dev"
+# CORS origin for dev. Override in production via dashboard/secrets.
+
+# R2 bucket binding
+[[r2_buckets]]
+binding = "BUCKET"
+bucket_name = "my-drive"
+
+# D1 database binding
+[[d1_databases]]
+binding = "DB"
+database_name = "cloudvault-db"
+database_id = "c3307405-8928-4a57-9e8e-2b34d47a9eb2"
+
+[triggers]
+crons = ["0 3 * * *"]  # Daily at 3am UTC
+
+# Secrets (set via `wrangler secret put`):
+# R2_ACCESS_KEY_ID
+# R2_SECRET_ACCESS_KEY
+# R2_ENDPOINT (e.g., https://<account-id>.r2.cloudflarestorage.com)
+# CF_ACCESS_TEAM (your Cloudflare Access team domain, e.g., "myteam")

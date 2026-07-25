@@ -1,0 +1,4 @@
+R2_ACCESS_KEY_ID=your_r2_api_token_access_key_id
+R2_SECRET_ACCESS_KEY=your_r2_api_token_secret_access_key
+R2_ENDPOINT=https://YOUR_ACCOUNT_ID.r2.cloudflarestorage.com
+BUCKET_NAME=cloudvault-dev
