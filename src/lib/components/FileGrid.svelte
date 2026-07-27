@@ -48,6 +48,14 @@
 		if (ok) files.deleteSelected();
 	};
 
+	const confirmFlatten = async (/** @type {import('$lib/mock/data.js').FileItem} */ item) => {
+		const ok = await ui.confirm(
+			'Flatten folder',
+			`Move everything inside "${item.name}" up to the parent folder and remove "${item.name}"?`
+		);
+		if (ok) files.flattenFolder(item.id);
+	};
+
 	// Context menu state
 	let contextMenu = $state(null);
 
@@ -245,6 +253,14 @@
 				icon: '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M17 3a2.828 2.828 0 114 4L7.5 20.5 2 22l1.5-5.5z"/></svg>',
 				shortcut: 'F2',
 				action: () => ui.openRename(item.id, item.name),
+			});
+		}
+
+		if (!isMulti && item.type === 'folder') {
+			menuItems.push({
+				label: 'Flatten folder',
+				icon: '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 19V5"/><path d="M5 12l7-7 7 7"/></svg>',
+				action: () => confirmFlatten(item),
 			});
 		}
 

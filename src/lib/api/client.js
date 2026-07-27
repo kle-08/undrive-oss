@@ -285,13 +285,16 @@ export const getInlineUrl = (key) =>
 	`${API_BASE}/download?key=${encodeURIComponent(key)}&inline=1`;
 
 /**
- * Get presign-redirect URL for an image thumbnail.
- * Returns a URL that 302-redirects to a presigned R2 URL.
+ * Get a presign-redirect URL for an image.
+ * Returns a URL that 302-redirects to a presigned R2 URL. By default resolves
+ * to the cached thumbnail when one exists; pass full=true for the original
+ * (e.g. the full-screen viewer).
  * @param {string} key
+ * @param {boolean} [full]
  * @returns {string}
  */
-export const getPresignUrl = (key) =>
-	`${API_BASE}/presign?key=${encodeURIComponent(key)}`;
+export const getPresignUrl = (key, full = false) =>
+	`${API_BASE}/presign?key=${encodeURIComponent(key)}${full ? '&full=1' : ''}`;
 
 /**
  * Soft-delete files (move to trash).
@@ -329,6 +332,18 @@ export const moveFiles = (keys, destination) =>
 		method: 'POST',
 		headers: { 'Content-Type': 'application/json' },
 		body: JSON.stringify({ keys, destination }),
+	});
+
+/**
+ * Flatten a folder: move its contents up to its parent, then remove the folder.
+ * @param {string} key - folder key, e.g. "photos/vacation/"
+ * @returns {Promise<{ moved: number, destination: string }>}
+ */
+export const flattenFolder = (key) =>
+	apiFetch('/flatten', {
+		method: 'POST',
+		headers: { 'Content-Type': 'application/json' },
+		body: JSON.stringify({ key }),
 	});
 
 /**

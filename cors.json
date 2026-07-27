@@ -4,7 +4,8 @@
       "allowed": {
         "origins": [
           "https://undrive.pages.dev",
-          "http://localhost:5173"
+          "http://localhost:5173",
+          "http://localhost:6660"
         ],
         "methods": ["GET", "HEAD"],
         "headers": ["Range", "Content-Type"]

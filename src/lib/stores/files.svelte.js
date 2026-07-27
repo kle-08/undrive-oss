@@ -498,6 +498,26 @@ export const files = {
 	},
 
 	/**
+	 * Flatten a folder: move its contents up to its parent, remove the folder.
+	 * @param {string} folderId
+	 */
+	async flattenFolder(folderId) {
+		if (!USE_API) return;
+		const folder = fileState.files.find((f) => f.id === folderId);
+		if (!folder || folder.type !== 'folder') return;
+		try {
+			const res = await api.flattenFolder(folder.key);
+			toast.success(`Flattened "${folder.name}" — moved ${res.moved} item${res.moved === 1 ? '' : 's'} up`);
+			fileState.selected = new Set();
+			folderCache.delete(fileState.prefix);
+			await fetchFiles();
+		} catch (e) {
+			fileState.error = e.message;
+			toast.error(`Flatten failed: ${e.message}`);
+		}
+	},
+
+	/**
 	 * Copy selected files into a folder.
 	 * @param {string} folderId
 	 */

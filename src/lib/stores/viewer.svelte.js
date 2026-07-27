@@ -27,7 +27,8 @@ const refreshUrls = (items) =>
 	items.map((item) => {
 		if (!item.key) return item;
 		const isMedia = item.type === 'video' || item.type === 'audio';
-		const fullUrl = isMedia ? getInlineUrl(item.key) : getPresignUrl(item.key);
+		// Images: full=true so the viewer gets the original, not the thumbnail.
+		const fullUrl = isMedia ? getInlineUrl(item.key) : getPresignUrl(item.key, true);
 		return { ...item, url: fullUrl, thumbnail: item.thumbnail || item.url };
 	});
 

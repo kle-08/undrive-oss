@@ -6,6 +6,7 @@ import { handleDownload } from './routes/download.js';
 import { handleDelete, handleRestore, handleListTrash, handlePurgeTrash } from './routes/delete.js';
 import { handleRename } from './routes/rename.js';
 import { handleMove } from './routes/move.js';
+import { handleFlatten } from './routes/flatten.js';
 import { handleCopy } from './routes/copy.js';
 import { handleCreateFolder } from './routes/folder.js';
 import { handleGetThumb, handleSaveThumb, handlePresign } from './routes/thumb.js';
@@ -57,6 +58,7 @@ const routes = [
 	{ method: 'POST', pattern: new URLPattern({ pathname: '/api/delete' }), handler: handleDelete },
 	{ method: 'POST', pattern: new URLPattern({ pathname: '/api/rename' }), handler: handleRename },
 	{ method: 'POST', pattern: new URLPattern({ pathname: '/api/move' }), handler: handleMove },
+	{ method: 'POST', pattern: new URLPattern({ pathname: '/api/flatten' }), handler: handleFlatten },
 	{ method: 'POST', pattern: new URLPattern({ pathname: '/api/copy' }), handler: handleCopy },
 	{ method: 'POST', pattern: new URLPattern({ pathname: '/api/folder' }), handler: handleCreateFolder },
 	{ method: 'GET', pattern: new URLPattern({ pathname: '/api/presign' }), handler: handlePresign },

@@ -5,6 +5,7 @@ import { handleDownload } from '../worker/src/routes/download.js';
 import { handleDelete, handleRestore, handleListTrash, handlePurgeTrash } from '../worker/src/routes/delete.js';
 import { handleRename } from '../worker/src/routes/rename.js';
 import { handleMove } from '../worker/src/routes/move.js';
+import { handleFlatten } from '../worker/src/routes/flatten.js';
 import { handleCopy } from '../worker/src/routes/copy.js';
 import { handleCreateFolder } from '../worker/src/routes/folder.js';
 import { handleGetThumb, handleSaveThumb, handlePresign } from '../worker/src/routes/thumb.js';
@@ -27,6 +28,7 @@ const routes = [
 	{ method: 'POST', path: '/api/delete', handler: handleDelete },
 	{ method: 'POST', path: '/api/rename', handler: handleRename },
 	{ method: 'POST', path: '/api/move', handler: handleMove },
+	{ method: 'POST', path: '/api/flatten', handler: handleFlatten },
 	{ method: 'POST', path: '/api/copy', handler: handleCopy },
 	{ method: 'POST', path: '/api/folder', handler: handleCreateFolder },
 	{ method: 'GET', path: '/api/presign', handler: handlePresign },

@@ -5,10 +5,12 @@ const THUMB_PREFIX = '__thumbs/';
 const PRESIGN_EXPIRY = 604800; // 7 days
 
 /**
- * GET /api/presign?key=photos/pic.jpg
+ * GET /api/presign?key=photos/pic.jpg[&full=1]
  * Returns a 302 redirect to a presigned R2 URL.
- * For RAW images, redirects to the cached __thumbs/ version if available.
- * Uses KV cache for presigned URLs.
+ * By default serves the cached __thumbs/ version when one exists (fast, small —
+ * good for grids). Pass full=1 to serve the original (e.g. the lightbox viewer).
+ * RAW images always resolve to their __thumbs/ JPEG preview (the raw file can't
+ * render in a browser).
  */
 export const handlePresign = async (req, env) => {
 	const url = new URL(req.url);
@@ -16,10 +18,12 @@ export const handlePresign = async (req, env) => {
 	if (!key) return error('Missing "key" parameter');
 	if (!env._s3) return error('S3 not configured', 500);
 
+	const full = url.searchParams.get('full') === '1';
+	const thumbKey = `${THUMB_PREFIX}${key}.jpg`;
+
 	const ext = key.split('.').pop()?.toLowerCase() ?? '';
 	const RAW_EXTS = ['dng', 'cr2', 'cr3', 'nef', 'arw', 'orf', 'rw2', 'raf'];
 	if (RAW_EXTS.includes(ext)) {
-		const thumbKey = `${THUMB_PREFIX}${key}.jpg`;
 		const thumbHead = await env.BUCKET.head(thumbKey);
 		if (thumbHead) {
 			const presigned = await presignGet(env._s3, env._bucketName, thumbKey, PRESIGN_EXPIRY);
@@ -28,11 +32,12 @@ export const handlePresign = async (req, env) => {
 		return error('No thumbnail', 404);
 	}
 
-	const thumbKey = `${THUMB_PREFIX}${key}.jpg`;
-	const thumbHead = await env.BUCKET.head(thumbKey);
-	if (thumbHead) {
-		const presigned = await presignGet(env._s3, env._bucketName, thumbKey, PRESIGN_EXPIRY);
-		return Response.redirect(presigned, 302);
+	if (!full) {
+		const thumbHead = await env.BUCKET.head(thumbKey);
+		if (thumbHead) {
+			const presigned = await presignGet(env._s3, env._bucketName, thumbKey, PRESIGN_EXPIRY);
+			return Response.redirect(presigned, 302);
+		}
 	}
 
 	const presigned = await presignGet(env._s3, env._bucketName, key);
