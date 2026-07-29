@@ -1,5 +1,6 @@
 import { error } from '../lib/utils.js';
 import { presignGet } from '../lib/s3.js';
+import { vaultAuthed } from './vault.js';
 
 const STREAM_THRESHOLD = 50 * 1024 * 1024; // 50 MB
 
@@ -17,6 +18,7 @@ export const handleDownload = async (req, env) => {
 	const url = new URL(req.url);
 	const key = url.searchParams.get('key');
 	if (!key) return error('Missing "key" parameter');
+	if (key.startsWith('__vault/') && !(await vaultAuthed(req, env))) return error('Vault locked', 403);
 
 	const head = await env.BUCKET.head(key);
 	if (!head) return error('Not found', 404);

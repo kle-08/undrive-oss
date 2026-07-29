@@ -2,6 +2,7 @@
 	import { files } from '$lib/stores/files.svelte.js';
 	import { viewer } from '$lib/stores/viewer.svelte.js';
 	import { editor } from '$lib/stores/editor.svelte.js';
+	import { vault } from '$lib/stores/vault.svelte.js';
 	import { extensions } from '$lib/extensions/registry.svelte.js';
 	import { formatSize } from '$lib/mock/data.js';
 	import FileIcon from './FileIcon.svelte';
@@ -56,6 +57,7 @@
 		if (ok) files.flattenFolder(item.id);
 	};
 
+
 	// Context menu state
 	let contextMenu = $state(null);
 
@@ -97,7 +99,15 @@
 	};
 
 	const openItem = (/** @type {import('$lib/mock/data.js').FileItem} */ item) => {
+		if (item.isVaultRoot) {
+			files.enterVault();
+			return;
+		}
 		if (item.type === 'folder') {
+			if (files.isVault) {
+				files.navigateVault(item.key);
+				return;
+			}
 			files.clearSearch();
 			const urlPath = '/' + item.path.replace(/\/+$/, '');
 			goto(urlPath);
@@ -133,6 +143,7 @@
 	 * @param {import('$lib/mock/data.js').FileItem} item
 	 */
 	const handleClick = (e, item) => {
+		if (item.isVaultRoot) { openItem(item); return; }
 		if (e.shiftKey) {
 			e.preventDefault();
 			files.rangeSelect(item.id);
@@ -164,6 +175,32 @@
 
 		if (!files.selected.has(item.id)) {
 			files.selectOnly(item.id);
+		}
+
+		// The synthetic Vault folder gets its own minimal menu.
+		if (item.isVaultRoot) {
+			contextMenu = {
+				x: e.clientX, y: e.clientY,
+				items: [
+					{
+						label: 'Open',
+						icon: '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 13v6a2 2 0 01-2 2H5a2 2 0 01-2-2V8a2 2 0 012-2h6"/><polyline points="15,3 21,3 21,9"/><line x1="10" y1="14" x2="21" y2="3"/></svg>',
+						action: () => files.enterVault(),
+					},
+					{
+						label: 'Change passphrase',
+						icon: '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0110 0v4"/></svg>',
+						action: () => vault.openChange(),
+					},
+					{ separator: true },
+					{
+						label: 'Lock vault',
+						icon: '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 019.9-1"/></svg>',
+						action: () => vault.lock(),
+					},
+				],
+			};
+			return;
 		}
 
 		const targetItems = files.items.filter((f) => files.selected.has(f.id));
@@ -261,6 +298,20 @@
 				label: 'Flatten folder',
 				icon: '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 19V5"/><path d="M5 12l7-7 7 7"/></svg>',
 				action: () => confirmFlatten(item),
+			});
+		}
+
+		if (files.isVault) {
+			menuItems.push({
+				label: 'Move out of Vault',
+				icon: '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 21H5a2 2 0 01-2-2V5a2 2 0 012-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/></svg>',
+				action: () => files.moveToPrefix(''),
+			});
+		} else if (vault.unlocked) {
+			menuItems.push({
+				label: 'Move to Vault',
+				icon: '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0110 0v4"/></svg>',
+				action: () => files.moveToPrefix('__vault/'),
 			});
 		}
 
@@ -394,6 +445,7 @@
 			}
 		});
 
+		selected.delete('__vault/'); // never bulk-select the synthetic Vault folder
 		files.setSelection(selected);
 	};
 
@@ -406,6 +458,7 @@
 
 	// ===== DRAG AND DROP =====
 	const handleDragStart = (/** @type {DragEvent} */ e, /** @type {import('$lib/mock/data.js').FileItem} */ item) => {
+		if (item.isVaultRoot) { e.preventDefault(); return; }
 		dragId = item.id;
 		// If dragged item isn't selected, select only it
 		if (!files.selected.has(item.id)) {

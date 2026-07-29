@@ -5,15 +5,32 @@
 	import * as api from '$lib/api/client.js';
 	import TreeNode from './TreeNode.svelte';
 	import { sharing } from '$lib/stores/sharing.svelte.js';
+	import { vault } from '$lib/stores/vault.svelte.js';
 
 	let { open = $bindable(false) } = $props();
+
+	// Secret trigger: tap the Storage footer 7x within 2s to reveal the vault.
+	let vaultTaps = 0;
+	/** @type {ReturnType<typeof setTimeout>|null} */
+	let vaultTapTimer = null;
+	const tapStorage = () => {
+		vaultTaps++;
+		if (vaultTapTimer) clearTimeout(vaultTapTimer);
+		vaultTapTimer = setTimeout(() => { vaultTaps = 0; }, 2000);
+		if (vaultTaps >= 7) {
+			vaultTaps = 0;
+			vault.trigger();
+		}
+	};
 
 	let homeDropOver = $state(false);
 	let dropMenu = $state(null);
 
 	const navigate = (/** @type {string} */ path) => {
-		goto(path);
 		open = false;
+		// In vault mode the URL is unchanged, so goto('/') is a no-op — exit directly.
+		if (files.isVault && path === '/') { files.exitVault(); return; }
+		goto(path);
 	};
 
 	const handleHomeDragOver = (/** @type {DragEvent} */ e) => {
@@ -157,7 +174,8 @@
 
 	{#if stats}
 		{@const cost = costEstimate()}
-		<div class="storage-footer">
+		<!-- svelte-ignore a11y_click_events_have_key_events, a11y_no_static_element_interactions -->
+		<div class="storage-footer" onclick={tapStorage}>
 			<div class="storage-label">
 				<span>Storage</span>
 				<span class="storage-size">{stats.totalSizeGB} GB</span>

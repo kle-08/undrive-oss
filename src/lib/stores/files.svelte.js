@@ -42,6 +42,44 @@ const mapApiItem = (item) => ({
 	contentType: item.contentType ?? undefined,
 });
 
+/**
+ * Map a vault item. Vault media streams through the cookie-gated worker proxy
+ * (never direct R2), and carries a `vault` flag so the viewer skips crossorigin.
+ * @param {object} item
+ * @returns {FileItem}
+ */
+const mapVaultItem = (item) => {
+	const media = item.type === 'image' || item.type === 'video';
+	const url = media ? api.getInlineUrl(item.key) : undefined;
+	return {
+		id: item.key,
+		key: item.key,
+		name: item.name,
+		type: item.type,
+		path: item.key,
+		size: item.size,
+		sizeFormatted: item.sizeFormatted ?? '—',
+		modified: item.modified ? item.modified.split('T')[0] : null,
+		thumbnail: item.type === 'image' ? url : undefined,
+		url,
+		vault: true,
+	};
+};
+
+/** Synthetic "Vault" folder shown at Home once unlocked for the session. */
+const VAULT_FOLDER = {
+	id: '__vault/',
+	key: '__vault/',
+	name: 'Vault',
+	type: /** @type {const} */ ('folder'),
+	path: '__vault/',
+	size: 0,
+	sizeFormatted: '—',
+	modified: null,
+	color: '#a855f7',
+	isVaultRoot: true,
+};
+
 /** @type {'name'|'size'|'date'|'type'} */
 const storedSort = /** @type {any} */ (typeof localStorage !== 'undefined' && localStorage.getItem('cv-sort')) || 'name';
 const storedSortDir = /** @type {'asc'|'desc'} */ (typeof localStorage !== 'undefined' && localStorage.getItem('cv-sort-dir')) || 'asc';
@@ -57,6 +95,9 @@ const fileState = $state({
 	loading: false,
 	error: null,
 	isTrash: false,
+	inVault: false,
+	vaultLocked: false,
+	vaultUnlocked: false,
 	selectMode: false,
 	/** @type {'name'|'size'|'date'|'type'} */
 	sortBy: storedSort,
@@ -158,6 +199,27 @@ const pathToPrefix = (path) => {
  * Fetch files from API for the current prefix.
  */
 const fetchFiles = async () => {
+	// Vault mode: list through the gated endpoint, never cache to disk.
+	if (fileState.inVault) {
+		fileState.loading = true;
+		fileState.error = null;
+		try {
+			const result = await api.vaultList(fileState.prefix);
+			fileState.vaultLocked = false;
+			fileState.files = [...result.folders.map(mapVaultItem), ...result.files.map(mapVaultItem)];
+		} catch (e) {
+			if (/locked|403/i.test(e.message)) {
+				fileState.vaultLocked = true;
+				fileState.files = [];
+			} else {
+				fileState.error = e.message;
+			}
+		} finally {
+			fileState.loading = false;
+		}
+		return;
+	}
+
 	fileState.loading = !folderCache.has(fileState.prefix);
 	fileState.error = null;
 	try {
@@ -215,7 +277,22 @@ export const files = {
 		if (fileState.filterTypes.size > 0) {
 			source = source.filter((f) => f.type === 'folder' || fileState.filterTypes.has(f.type));
 		}
-		return sortFiles(source, fileState.sortBy, fileState.sortDir);
+		const sorted = sortFiles(source, fileState.sortBy, fileState.sortDir);
+		// Show the Vault folder at Home (root) once unlocked for the session.
+		if (fileState.vaultUnlocked && !fileState.inVault && !fileState.isTrash
+			&& !fileState.searchQuery && fileState.prefix === '') {
+			return [VAULT_FOLDER, ...sorted];
+		}
+		return sorted;
+	},
+
+	get vaultUnlocked() {
+		return fileState.vaultUnlocked;
+	},
+
+	/** @param {boolean} v */
+	setVaultUnlocked(v) {
+		fileState.vaultUnlocked = v;
 	},
 	get rawItems() {
 		return fileState.files;
@@ -241,10 +318,28 @@ export const files = {
 	get isTrash() {
 		return fileState.isTrash;
 	},
+	get isVault() {
+		return fileState.inVault;
+	},
+	get vaultLocked() {
+		return fileState.vaultLocked;
+	},
 	get selectMode() {
 		return fileState.selectMode;
 	},
 	get breadcrumbs() {
+		if (fileState.inVault) {
+			const rel = fileState.prefix.replace(/^__vault\//, '').replace(/\/$/, '');
+			const parts = rel ? rel.split('/') : [];
+			return [
+				{ name: 'Home', path: '/' },
+				{ name: 'Vault', vaultPrefix: '__vault/' },
+				...parts.map((part, i) => ({
+					name: part,
+					vaultPrefix: '__vault/' + parts.slice(0, i + 1).join('/') + '/',
+				})),
+			];
+		}
 		if (fileState.isTrash) {
 			return [{ name: 'Home', path: '/' }, { name: 'Trash', path: '/__trash' }];
 		}
@@ -258,8 +353,36 @@ export const files = {
 		];
 	},
 
+	/** Enter the vault (browse __vault/ in the normal grid). No URL change — stays hidden. */
+	enterVault() {
+		fileState.inVault = true;
+		fileState.isTrash = false;
+		fileState.vaultLocked = false;
+		fileState.selected = new Set();
+		fileState.prefix = '__vault/';
+		fileState.path = '/';
+		fetchFiles();
+	},
+
+	/** Navigate to a subfolder within the vault. @param {string} prefix */
+	navigateVault(prefix) {
+		if (!prefix.startsWith('__vault/')) return;
+		fileState.selected = new Set();
+		fileState.prefix = prefix;
+		fetchFiles();
+	},
+
+	/** Leave the vault and go home. */
+	exitVault() {
+		fileState.inVault = false;
+		fileState.vaultLocked = false;
+		files.navigate('/');
+	},
+
 	/** @param {string} path */
 	async navigate(path) {
+		fileState.inVault = false;
+		fileState.vaultLocked = false;
 		fileState.path = path;
 		fileState.selected = new Set();
 		fileState.lastSelectedId = null;
@@ -469,7 +592,7 @@ export const files = {
 	async moveToFolder(folderId) {
 		if (USE_API) {
 			const keys = [...fileState.selected];
-			const folder = fileState.files.find((f) => f.id === folderId);
+			const folder = folderId === '__vault/' ? VAULT_FOLDER : fileState.files.find((f) => f.id === folderId);
 			if (!folder) return;
 			try {
 				await api.moveFiles(keys, folder.key);
@@ -524,7 +647,7 @@ export const files = {
 	async copyToFolder(folderId) {
 		if (!USE_API) return;
 		const keys = [...fileState.selected];
-		const folder = fileState.files.find((f) => f.id === folderId);
+		const folder = folderId === '__vault/' ? VAULT_FOLDER : fileState.files.find((f) => f.id === folderId);
 		if (!folder) return;
 		try {
 			await api.copyFiles(keys, folder.key);

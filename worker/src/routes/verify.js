@@ -1,6 +1,6 @@
 import { json } from '../lib/utils.js';
 
-const SKIP_PREFIXES = ['__thumbs/', '__trash/', '__config/', '__generated/'];
+const SKIP_PREFIXES = ['__thumbs/', '__trash/', '__config/', '__generated/', '__vault/'];
 
 /**
  * Collect R2 keys and D1 keys for comparison.

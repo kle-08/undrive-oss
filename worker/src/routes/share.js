@@ -71,10 +71,13 @@ export const handleCreateShare = async (req, env) => {
  * @param {object} env
  */
 export const handleListShares = async (req, env) => {
+	// Only list shares whose file still exists and isn't in trash.
 	const { results } = await env.DB.prepare(
 		`SELECT token, r2_key, filename, created_at, expires_at, max_downloads, download_count,
 		        CASE WHEN password_hash IS NOT NULL THEN 1 ELSE 0 END as has_password
-		 FROM shares ORDER BY created_at DESC`
+		 FROM shares
+		 WHERE EXISTS (SELECT 1 FROM files WHERE files.r2_key = shares.r2_key AND files.deleted_at IS NULL)
+		 ORDER BY created_at DESC`
 	).all();
 
 	return Response.json({ shares: results });
@@ -113,6 +116,17 @@ export const handlePublicShare = async (req, env, params) => {
 
 	if (!share) {
 		return new Response(errorPage('Link not found', 'This share link does not exist or has been revoked.'), {
+			status: 404, headers: { ...securityHeaders(), 'Content-Type': 'text/html;charset=UTF-8' },
+		});
+	}
+
+	// Block if the file has been moved to trash (soft delete leaves the R2 object
+	// in place, so serving straight from R2 would leak a "deleted" file).
+	const trashed = await env.DB.prepare(
+		'SELECT 1 FROM files WHERE r2_key = ? AND deleted_at IS NOT NULL'
+	).bind(share.r2_key).first();
+	if (trashed) {
+		return new Response(errorPage('File unavailable', 'This file has been deleted or moved to trash.'), {
 			status: 404, headers: { ...securityHeaders(), 'Content-Type': 'text/html;charset=UTF-8' },
 		});
 	}

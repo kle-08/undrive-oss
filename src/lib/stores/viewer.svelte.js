@@ -26,10 +26,12 @@ const viewerState = $state({
 const refreshUrls = (items) =>
 	items.map((item) => {
 		if (!item.key) return item;
+		const isVault = item.vault || item.key.startsWith('__vault/');
 		const isMedia = item.type === 'video' || item.type === 'audio';
-		// Images: full=true so the viewer gets the original, not the thumbnail.
-		const fullUrl = isMedia ? getInlineUrl(item.key) : getPresignUrl(item.key, true);
-		return { ...item, url: fullUrl, thumbnail: item.thumbnail || item.url };
+		// Vault media always streams through the cookie-gated proxy (no direct R2,
+		// no crossorigin). Normal images use full=true for the original.
+		const fullUrl = (isVault || isMedia) ? getInlineUrl(item.key) : getPresignUrl(item.key, true);
+		return { ...item, url: fullUrl, thumbnail: item.thumbnail || item.url, vault: isVault };
 	});
 
 export const viewer = {

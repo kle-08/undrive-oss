@@ -19,21 +19,30 @@
 		dropOverIdx = -1;
 	};
 
-	const handleDrop = (/** @type {DragEvent} */ e, /** @type {string} */ path) => {
+	const handleDrop = (/** @type {DragEvent} */ e, /** @type {any} */ crumb) => {
 		e.preventDefault();
 		dropOverIdx = -1;
+
+		const dest = crumb.vaultPrefix ?? prefixFromPath(crumb.path);
 
 		// External file drop — upload to this breadcrumb's folder
 		if (e.dataTransfer?.types?.includes('Files') && e.dataTransfer.files.length > 0) {
 			const fileList = [...e.dataTransfer.files];
-			files.uploadFilesToPrefix(prefixFromPath(path), fileList);
+			files.uploadFilesToPrefix(dest, fileList);
 			return;
 		}
 
 		// Internal item drop — move selected items
 		if (files.hasSelection) {
-			files.moveToPrefix(prefixFromPath(path));
+			files.moveToPrefix(dest);
 		}
+	};
+
+	/** @param {any} crumb */
+	const goCrumb = (crumb) => {
+		if (crumb.vaultPrefix) files.navigateVault(crumb.vaultPrefix);
+		else if (files.isVault) files.exitVault(); // URL is unchanged in vault mode, so exit directly
+		else goto(crumb.path);
 	};
 </script>
 
@@ -48,10 +57,10 @@
 			<button
 				class="crumb"
 				class:drop-over={dropOverIdx === i}
-				onclick={() => goto(crumb.path)}
+				onclick={() => goCrumb(crumb)}
 				ondragover={(e) => handleDragOver(e, i)}
 				ondragleave={handleDragLeave}
-				ondrop={(e) => handleDrop(e, crumb.path)}
+				ondrop={(e) => handleDrop(e, crumb)}
 			>
 				{crumb.name}
 			</button>

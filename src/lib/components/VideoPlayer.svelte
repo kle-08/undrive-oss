@@ -201,7 +201,7 @@
 				<video
 					bind:this={videoEl}
 					src={viewer.current.url}
-					crossorigin="anonymous"
+					crossorigin={viewer.current.vault ? undefined : 'anonymous'}
 					controls
 					autoplay
 					playsinline

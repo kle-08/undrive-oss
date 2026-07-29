@@ -148,5 +148,12 @@ export const handlePurgeTrash = async (req, env) => {
 		await env.DB.prepare(`DELETE FROM files WHERE id IN (${placeholders})`).bind(...ids).run();
 	}
 
+	// Remove any share links pointing at the purged files
+	for (let i = 0; i < r2Keys.length; i += 500) {
+		const chunk = r2Keys.slice(i, i + 500);
+		const placeholders = chunk.map(() => '?').join(',');
+		await env.DB.prepare(`DELETE FROM shares WHERE r2_key IN (${placeholders})`).bind(...chunk).run();
+	}
+
 	return json({ purged: ids.length });
 };

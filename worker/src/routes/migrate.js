@@ -10,7 +10,7 @@ import { json, error, keyName, inferType } from '../lib/utils.js';
  * @param {object} env
  */
 export const handleMigrate = async (req, env) => {
-	const SKIP_PREFIXES = ['__thumbs/', '__trash/', '__config/', '__generated/'];
+	const SKIP_PREFIXES = ['__thumbs/', '__trash/', '__config/', '__generated/', '__vault/'];
 	let cursor;
 	let inserted = 0;
 	let skipped = 0;

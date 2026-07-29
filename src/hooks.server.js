@@ -6,6 +6,7 @@ import { handleDelete, handleRestore, handleListTrash, handlePurgeTrash } from '
 import { handleRename } from '../worker/src/routes/rename.js';
 import { handleMove } from '../worker/src/routes/move.js';
 import { handleFlatten } from '../worker/src/routes/flatten.js';
+import { handleVaultStatus, handleVaultSetup, handleVaultUnlock, handleVaultLock, handleVaultChange, handleVaultList } from '../worker/src/routes/vault.js';
 import { handleCopy } from '../worker/src/routes/copy.js';
 import { handleCreateFolder } from '../worker/src/routes/folder.js';
 import { handleGetThumb, handleSaveThumb, handlePresign } from '../worker/src/routes/thumb.js';
@@ -29,6 +30,12 @@ const routes = [
 	{ method: 'POST', path: '/api/rename', handler: handleRename },
 	{ method: 'POST', path: '/api/move', handler: handleMove },
 	{ method: 'POST', path: '/api/flatten', handler: handleFlatten },
+	{ method: 'GET', path: '/api/vault/status', handler: handleVaultStatus },
+	{ method: 'POST', path: '/api/vault/setup', handler: handleVaultSetup },
+	{ method: 'POST', path: '/api/vault/unlock', handler: handleVaultUnlock },
+	{ method: 'POST', path: '/api/vault/lock', handler: handleVaultLock },
+	{ method: 'POST', path: '/api/vault/change', handler: handleVaultChange },
+	{ method: 'GET', path: '/api/vault/list', handler: handleVaultList },
 	{ method: 'POST', path: '/api/copy', handler: handleCopy },
 	{ method: 'POST', path: '/api/folder', handler: handleCreateFolder },
 	{ method: 'GET', path: '/api/presign', handler: handlePresign },

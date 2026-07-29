@@ -12,6 +12,7 @@
 	import MiniPlayer from '$lib/components/MiniPlayer.svelte';
 	import ShareDialog from '$lib/components/ShareDialog.svelte';
 	import SharesManager from '$lib/components/SharesManager.svelte';
+	import VaultModal from '$lib/components/VaultModal.svelte';
 	import { viewer } from '$lib/stores/viewer.svelte.js';
 	import { files } from '$lib/stores/files.svelte.js';
 	import { isBackendDown } from '$lib/api/client.js';
@@ -89,6 +90,7 @@
 <MiniPlayer />
 <ShareDialog />
 <SharesManager />
+<VaultModal />
 <ToastContainer />
 
 <style>

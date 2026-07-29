@@ -370,6 +370,91 @@
 
 	const charCount = $derived.by(() => { void txCount; return tiptap?.storage.characterCount?.characters() ?? 0; });
 	const wordCount = $derived.by(() => { void txCount; return tiptap?.storage.characterCount?.words() ?? 0; });
+
+	// --- Raw markdown editing (edit = source textarea, preview = rendered) ---
+	/** @type {HTMLTextAreaElement|null} */
+	let textareaEl = $state(null);
+	let rawValue = $state('');
+	let seededKey = '';
+	const mdEdit = $derived(editor.markdown && !editor.preview);
+
+	// Seed the textarea from the loaded content once per document.
+	$effect(() => {
+		if (!editor.loading && editor.open && editor.key !== seededKey) {
+			seededKey = editor.key;
+			rawValue = editor.content;
+		}
+	});
+
+	// Tear down TipTap when switching to raw editing (it only renders preview / html).
+	$effect(() => {
+		if (mdEdit && tiptap) {
+			clearTimeout(autosaveTimer);
+			tiptap.destroy();
+			tiptap = null;
+			showSlashMenu = false;
+		}
+	});
+
+	const onRawInput = () => {
+		editor.setContent(rawValue);
+		scheduleAutosave();
+	};
+
+	/** @param {string} val @param {number} pos */
+	const lineBounds = (val, pos) => {
+		const start = val.lastIndexOf('\n', pos - 1) + 1;
+		let end = val.indexOf('\n', pos);
+		if (end === -1) end = val.length;
+		return { start, end };
+	};
+
+	/** @param {(val: string, s: number, e: number) => { text: string, selStart: number, selEnd: number }} transform */
+	const rawEdit = (transform) => {
+		const ta = textareaEl;
+		if (!ta) return;
+		const r = transform(rawValue, ta.selectionStart, ta.selectionEnd);
+		rawValue = r.text;
+		editor.setContent(r.text);
+		scheduleAutosave();
+		requestAnimationFrame(() => { ta.focus(); ta.setSelectionRange(r.selStart, r.selEnd); });
+	};
+
+	/** Toggle `#`×level on the current line. @param {number} level */
+	const rawHeading = (level) => rawEdit((val, s) => {
+		const { start, end } = lineBounds(val, s);
+		const line = val.slice(start, end);
+		const m = line.match(/^(#{1,6})\s+/);
+		const cur = m ? m[1].length : 0;
+		const body = line.replace(/^#{1,6}\s+/, '');
+		const newLine = cur === level ? body : '#'.repeat(level) + ' ' + body;
+		const text = val.slice(0, start) + newLine + val.slice(end);
+		const caret = start + newLine.length;
+		return { text, selStart: caret, selEnd: caret };
+	});
+
+	/** Wrap/unwrap the selection with a marker. @param {string} marker */
+	const rawWrap = (marker) => rawEdit((val, s, e) => {
+		const sel = val.slice(s, e);
+		const before = val.slice(Math.max(0, s - marker.length), s);
+		const after = val.slice(e, e + marker.length);
+		if (sel && before === marker && after === marker) {
+			return { text: val.slice(0, s - marker.length) + sel + val.slice(e + marker.length), selStart: s - marker.length, selEnd: e - marker.length };
+		}
+		const insert = marker + sel + marker;
+		return { text: val.slice(0, s) + insert + val.slice(e), selStart: s + marker.length, selEnd: e + marker.length };
+	});
+
+	/** Toggle a line prefix (list/quote) across selected lines. @param {string} prefix */
+	const rawPrefix = (prefix) => rawEdit((val, s, e) => {
+		const { start } = lineBounds(val, s);
+		let endB = val.indexOf('\n', e);
+		if (endB === -1) endB = val.length;
+		const lines = val.slice(start, endB).split('\n');
+		const allPrefixed = lines.every((l) => l.startsWith(prefix));
+		const out = lines.map((l) => (allPrefixed ? l.slice(prefix.length) : prefix + l)).join('\n');
+		return { text: val.slice(0, start) + out + val.slice(endB), selStart: start, selEnd: start + out.length };
+	});
 </script>
 
 <svelte:window onkeydown={handleKeydown} />
@@ -475,10 +560,41 @@
 				</div>
 			{/if}
 
+			<!-- Raw markdown toolbar -->
+			{#if mdEdit}
+				<div class="editor-toolbar">
+					<div class="toolbar-group">
+						<button class="tb" onclick={() => rawHeading(1)} title="Heading 1">H1</button>
+						<button class="tb" onclick={() => rawHeading(2)} title="Heading 2">H2</button>
+						<button class="tb" onclick={() => rawHeading(3)} title="Heading 3">H3</button>
+					</div>
+					<div class="toolbar-sep"></div>
+					<div class="toolbar-group">
+						<button class="tb" onclick={() => rawWrap('**')} title="Bold"><strong>B</strong></button>
+						<button class="tb" onclick={() => rawWrap('*')} title="Italic"><em>I</em></button>
+						<button class="tb" onclick={() => rawWrap('`')} title="Inline code">&lt;/&gt;</button>
+					</div>
+					<div class="toolbar-sep"></div>
+					<div class="toolbar-group">
+						<button class="tb" onclick={() => rawPrefix('- ')} title="Bullet list">•</button>
+						<button class="tb" onclick={() => rawPrefix('> ')} title="Quote">&gt;</button>
+					</div>
+				</div>
+			{/if}
+
 			<!-- Editor content -->
 			<div class="editor-body">
 				{#if editor.loading}
 					<div class="editor-loading">Loading document...</div>
+				{:else if mdEdit}
+					<textarea
+						class="raw-editor"
+						bind:this={textareaEl}
+						bind:value={rawValue}
+						oninput={onRawInput}
+						spellcheck="false"
+						placeholder="# Markdown source…"
+					></textarea>
 				{:else}
 					<div class="editor-content-wrapper">
 						<div class="editor-content" bind:this={editorEl}></div>
@@ -688,6 +804,23 @@
 		padding: 48px;
 		font-size: 14px;
 	}
+
+	.raw-editor {
+		display: block;
+		width: 100%;
+		min-height: 100%;
+		box-sizing: border-box;
+		resize: none;
+		border: none;
+		outline: none;
+		background: transparent;
+		color: var(--text-primary);
+		font-family: ui-monospace, 'SF Mono', Menlo, Consolas, monospace;
+		font-size: 14px;
+		line-height: 1.7;
+		tab-size: 2;
+	}
+	.raw-editor::placeholder { color: var(--text-muted); }
 
 	.editor-content-wrapper {
 		position: relative;

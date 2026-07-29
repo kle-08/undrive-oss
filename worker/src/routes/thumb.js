@@ -1,5 +1,6 @@
 import { error } from '../lib/utils.js';
 import { presignGet } from '../lib/s3.js';
+import { vaultAuthed } from './vault.js';
 
 const THUMB_PREFIX = '__thumbs/';
 const PRESIGN_EXPIRY = 604800; // 7 days
@@ -17,6 +18,7 @@ export const handlePresign = async (req, env) => {
 	const key = url.searchParams.get('key');
 	if (!key) return error('Missing "key" parameter');
 	if (!env._s3) return error('S3 not configured', 500);
+	if (key.startsWith('__vault/') && !(await vaultAuthed(req, env))) return error('Vault locked', 403);
 
 	const full = url.searchParams.get('full') === '1';
 	const thumbKey = `${THUMB_PREFIX}${key}.jpg`;
@@ -54,6 +56,7 @@ export const handleGetThumb = async (req, env) => {
 	const url = new URL(req.url);
 	const key = url.searchParams.get('key');
 	if (!key) return error('Missing "key" parameter');
+	if (key.startsWith('__vault/') && !(await vaultAuthed(req, env))) return error('Vault locked', 403);
 
 	const thumbKey = `${THUMB_PREFIX}${key}.jpg`;
 	const head = await env.BUCKET.head(thumbKey);

@@ -14,7 +14,8 @@ export const handleMove = async (req, env) => {
 	if (!Array.isArray(keys) || keys.length === 0) return error('Missing "keys" array');
 	if (typeof destination !== 'string') return error('Missing "destination" string');
 
-	const dest = destination.endsWith('/') ? destination : destination + '/';
+	// '' or '/' means the root (parent = ''); otherwise ensure a trailing slash.
+	const dest = destination === '' || destination === '/' ? '' : (destination.endsWith('/') ? destination : destination + '/');
 	let moved = 0;
 
 	const stmts = [];

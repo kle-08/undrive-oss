@@ -15,7 +15,7 @@ export const handleSearch = async (req, env) => {
 	const rows = await env.DB.prepare(
 		`SELECT id, r2_key, name, parent, type, size, created_at, updated_at
 		 FROM files
-		 WHERE name LIKE ? AND deleted_at IS NULL AND r2_key NOT LIKE '__trash/%'
+		 WHERE name LIKE ? AND deleted_at IS NULL AND r2_key NOT LIKE '__trash/%' AND r2_key NOT LIKE '__vault/%'
 		 ORDER BY type = 'folder' DESC, name ASC
 		 LIMIT 50`
 	).bind(`%${q}%`).all();

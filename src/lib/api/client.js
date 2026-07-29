@@ -334,6 +334,29 @@ export const moveFiles = (keys, destination) =>
 		body: JSON.stringify({ keys, destination }),
 	});
 
+// --- Hidden vault (passphrase-gated) ---
+
+/** @returns {Promise<{ configured: boolean, unlocked: boolean }>} */
+export const vaultStatus = () => apiFetch('/vault/status');
+
+/** @param {string} passphrase */
+export const vaultSetup = (passphrase) =>
+	apiFetch('/vault/setup', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ passphrase }) });
+
+/** @param {string} passphrase */
+export const vaultUnlock = (passphrase) =>
+	apiFetch('/vault/unlock', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ passphrase }) });
+
+export const vaultLock = () => apiFetch('/vault/lock', { method: 'POST' });
+
+/** @param {string} current @param {string} next */
+export const vaultChange = (current, next) =>
+	apiFetch('/vault/change', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ current, next }) });
+
+/** @param {string} [prefix] */
+export const vaultList = (prefix = '__vault/') =>
+	apiFetch(`/vault/list?prefix=${encodeURIComponent(prefix)}`);
+
 /**
  * Flatten a folder: move its contents up to its parent, then remove the folder.
  * @param {string} key - folder key, e.g. "photos/vacation/"

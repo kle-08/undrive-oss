@@ -7,6 +7,7 @@ import { handleDelete, handleRestore, handleListTrash, handlePurgeTrash } from '
 import { handleRename } from './routes/rename.js';
 import { handleMove } from './routes/move.js';
 import { handleFlatten } from './routes/flatten.js';
+import { handleVaultStatus, handleVaultSetup, handleVaultUnlock, handleVaultLock, handleVaultChange, handleVaultList } from './routes/vault.js';
 import { handleCopy } from './routes/copy.js';
 import { handleCreateFolder } from './routes/folder.js';
 import { handleGetThumb, handleSaveThumb, handlePresign } from './routes/thumb.js';
@@ -59,6 +60,12 @@ const routes = [
 	{ method: 'POST', pattern: new URLPattern({ pathname: '/api/rename' }), handler: handleRename },
 	{ method: 'POST', pattern: new URLPattern({ pathname: '/api/move' }), handler: handleMove },
 	{ method: 'POST', pattern: new URLPattern({ pathname: '/api/flatten' }), handler: handleFlatten },
+	{ method: 'GET', pattern: new URLPattern({ pathname: '/api/vault/status' }), handler: handleVaultStatus },
+	{ method: 'POST', pattern: new URLPattern({ pathname: '/api/vault/setup' }), handler: handleVaultSetup },
+	{ method: 'POST', pattern: new URLPattern({ pathname: '/api/vault/unlock' }), handler: handleVaultUnlock },
+	{ method: 'POST', pattern: new URLPattern({ pathname: '/api/vault/lock' }), handler: handleVaultLock },
+	{ method: 'POST', pattern: new URLPattern({ pathname: '/api/vault/change' }), handler: handleVaultChange },
+	{ method: 'GET', pattern: new URLPattern({ pathname: '/api/vault/list' }), handler: handleVaultList },
 	{ method: 'POST', pattern: new URLPattern({ pathname: '/api/copy' }), handler: handleCopy },
 	{ method: 'POST', pattern: new URLPattern({ pathname: '/api/folder' }), handler: handleCreateFolder },
 	{ method: 'GET', pattern: new URLPattern({ pathname: '/api/presign' }), handler: handlePresign },
