@@ -377,6 +377,8 @@
 	let rawValue = $state('');
 	let seededKey = '';
 	const mdEdit = $derived(editor.markdown && !editor.preview);
+	// Raw textarea shows for markdown-edit and for plain-text files (txt/json/csv).
+	const rawMode = $derived(editor.plaintext || mdEdit);
 
 	// Seed the textarea from the loaded content once per document.
 	$effect(() => {
@@ -388,7 +390,7 @@
 
 	// Tear down TipTap when switching to raw editing (it only renders preview / html).
 	$effect(() => {
-		if (mdEdit && tiptap) {
+		if (rawMode && tiptap) {
 			clearTimeout(autosaveTimer);
 			tiptap.destroy();
 			tiptap = null;
@@ -455,6 +457,18 @@
 		const out = lines.map((l) => (allPrefixed ? l.slice(prefix.length) : prefix + l)).join('\n');
 		return { text: val.slice(0, start) + out + val.slice(endB), selStart: start, selEnd: start + out.length };
 	});
+
+	/** Pretty-print the current JSON, or toast if it's invalid. */
+	const formatJson = () => {
+		try {
+			const formatted = JSON.stringify(JSON.parse(rawValue), null, 2);
+			rawValue = formatted;
+			editor.setContent(formatted);
+			scheduleAutosave();
+		} catch {
+			toast.error('Not valid JSON — can’t format');
+		}
+	};
 </script>
 
 <svelte:window onkeydown={handleKeydown} />
@@ -582,18 +596,25 @@
 				</div>
 			{/if}
 
+			<!-- JSON toolbar -->
+			{#if editor.json && !editor.loading}
+				<div class="editor-toolbar">
+					<button class="tb" onclick={formatJson} title="Pretty-print JSON">Format</button>
+				</div>
+			{/if}
+
 			<!-- Editor content -->
 			<div class="editor-body">
 				{#if editor.loading}
 					<div class="editor-loading">Loading document...</div>
-				{:else if mdEdit}
+				{:else if rawMode}
 					<textarea
 						class="raw-editor"
 						bind:this={textareaEl}
 						bind:value={rawValue}
 						oninput={onRawInput}
 						spellcheck="false"
-						placeholder="# Markdown source…"
+						placeholder={editor.markdown ? '# Markdown source…' : 'Empty file'}
 					></textarea>
 				{:else}
 					<div class="editor-content-wrapper">

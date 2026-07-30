@@ -82,6 +82,8 @@
 	const BROWSER_IMAGE_EXTS = ['jpg', 'jpeg', 'png', 'gif', 'webp', 'svg', 'bmp', 'ico', 'avif'];
 	const RAW_IMAGE_EXTS = ['dng', 'cr2', 'arw', 'nef', 'orf', 'rw2', 'raf'];
 	const PLAYABLE_EXTS = ['mp4', 'mov', 'm4v', 'webm', 'mp3', 'aac', 'm4a', 'ogg', 'wav', 'flac'];
+	const TEXT_DOC_EXTS = ['md', 'markdown', 'html', 'htm', 'txt', 'json', 'csv'];
+	const isTextDoc = (/** @type {string} */ name) => TEXT_DOC_EXTS.includes(name.split('.').pop()?.toLowerCase() ?? '');
 
 	const canPlayInBrowser = (/** @type {string} */ name) => {
 		const ext = name.split('.').pop()?.toLowerCase() ?? '';
@@ -113,7 +115,7 @@
 			goto(urlPath);
 			return;
 		}
-		if (item.type === 'document' && (item.name.endsWith('.html') || item.name.endsWith('.md'))) {
+		if (isTextDoc(item.name)) {
 			editor.openDoc(item.key, item.name);
 			return;
 		}

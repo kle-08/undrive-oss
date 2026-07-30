@@ -18,8 +18,18 @@ const state = $state({
 	/** @type {boolean} */
 	markdown: false,
 	/** @type {boolean} */
+	plaintext: false,
+	/** @type {boolean} */
+	json: false,
+	/** @type {boolean} */
 	preview: false,
 });
+
+/** Pretty-print JSON; return the original string if it isn't valid JSON. */
+const tryFormatJson = (s) => {
+	if (!s.trim()) return s;
+	try { return JSON.stringify(JSON.parse(s), null, 2); } catch { return s; }
+};
 
 export const editor = {
 	get open() { return state.open; },
@@ -30,6 +40,8 @@ export const editor = {
 	get saving() { return state.saving; },
 	get dirty() { return state.dirty; },
 	get markdown() { return state.markdown; },
+	get plaintext() { return state.plaintext; },
+	get json() { return state.json; },
 	get preview() { return state.preview; },
 
 	/**
@@ -38,7 +50,10 @@ export const editor = {
 	 * @param {string} name - File name
 	 */
 	async openDoc(key, name, previewOnly = false) {
-		const isMd = name.toLowerCase().endsWith('.md');
+		const lower = name.toLowerCase();
+		const isMd = lower.endsWith('.md') || lower.endsWith('.markdown');
+		const isHtml = lower.endsWith('.html') || lower.endsWith('.htm');
+		const isJson = lower.endsWith('.json');
 		state.open = true;
 		state.key = key;
 		state.name = name;
@@ -46,12 +61,15 @@ export const editor = {
 		state.loading = true;
 		state.dirty = false;
 		state.markdown = isMd;
+		state.plaintext = !isMd && !isHtml; // txt, json, csv, … → raw text
+		state.json = isJson;
 		state.preview = previewOnly;
 
 		try {
 			const url = vault.getDownloadUrl(key);
 			const res = await fetch(url, { credentials: 'include' });
-			state.content = await res.text();
+			const text = await res.text();
+			state.content = isJson ? tryFormatJson(text) : text;
 		} catch {
 			state.content = '';
 		} finally {
